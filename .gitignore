@@ -25,3 +25,11 @@
 docker-compose.custom.yml
 
 .DS_Store
+
+/nginx/certs/*.crt
+/nginx/certs/*.key
+/nginx/certs/*.csr
+
+/nginx/ssl/**/*.crt
+/nginx/ssl/**/*.key
+/nginx/ssl/**/*.csr
