@@ -5,8 +5,8 @@ if [ -z "$*" ]; then echo "There is no domain argument"; exit 0; fi
 NAME=$1
 CERTS_FOLDER=$1
 ROOT_CERTS_FOLDER="root_certs"
-ROOT_CA="myCA2.pem"
-ROOT_CA_KEY="myCA2.key"
+ROOT_CA="myCA_good.pem"
+ROOT_CA_KEY="myCA_good.key"
 
 
 
