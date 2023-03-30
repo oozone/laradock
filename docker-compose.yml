@@ -1,9 +1,7 @@
-version: '3.5'
-
 networks:
-  spiritias-frontend:
+  frontend:
     driver: ${NETWORKS_DRIVER}
-  spiritias-backend:
+  backend:
     driver: ${NETWORKS_DRIVER}
 volumes:
   mysql:
@@ -62,21 +60,21 @@ volumes:
 services:
 
 ### VITE
-    vite:
-      image: node:latest
-      restart: unless-stopped
-      volumes:
-        - "../spiritias:/spiritias"
-        - "../spiritias/node_modules:/spiritias/node_modules"
-      working_dir: /spiritias
-      ports:
-        - "3000"
-        - "3101"
-        - "5173"
-      networks:
-        - spiritias-frontend
-        - spiritias-backend
-      command: bash -c "npm i && npm run dev"
+#    vite:
+#      image: node:latest
+#      restart: unless-stopped
+#      volumes:
+#        - "../spiritias:/spiritias"
+#        - "../spiritias/node_modules:/spiritias/node_modules"
+#      working_dir: /spiritias
+#      ports:
+#        - "3000"
+#        - "3101"
+#        - "5173"
+#      networks:
+#        - spiritias-frontend
+#        - spiritias-backend
+#      command: bash -c "npm i && npm run dev"
 
 
 ### Workspace Utilities ##################################
@@ -224,8 +222,8 @@ services:
         - DOCKER_CERT_PATH=/certs/client
         - CHOKIDAR_USEPOLLING=true
       networks:
-        - spiritias-frontend
-        - spiritias-backend
+        - frontend
+        - backend
       links:
         - docker-in-docker
 
@@ -336,7 +334,7 @@ services:
       depends_on:
         - workspace
       networks:
-        - spiritias-backend
+        - backend
       links:
         - docker-in-docker
 
@@ -390,7 +388,7 @@ services:
       extra_hosts:
         - "dockerhost:${DOCKER_HOST_IP}"
       networks:
-        - spiritias-backend
+        - backend
 ### Laravel Horizon ############################################
     laravel-horizon:
       build:
@@ -426,7 +424,7 @@ services:
       extra_hosts:
         - "dockerhost:${DOCKER_HOST_IP}"
       networks:
-        - spiritias-backend
+        - backend
 
   ### Soketi Server ##############################################
     soketi:
@@ -436,8 +434,8 @@ services:
         - "${SOKETI_PORT}:6001"
         - "${SOKETI_METRICS_SERVER_PORT}:9601"
       networks:
-        - spiritias-frontend
-        - spiritias-backend
+        - frontend
+        - backend
 
 ### NGINX Server #########################################
     nginx:
@@ -462,8 +460,8 @@ services:
       depends_on:
         - php-fpm
       networks:
-        - spiritias-frontend
-        - spiritias-backend
+        - frontend
+        - backend
 
 ### OpenResty Server #########################################
 #    openresty:
@@ -488,21 +486,10 @@ services:
 #      depends_on:
 #        - php-fpm
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 
-#### Blackfire ########################################
-#    blackfire:
-#      image: blackfire/blackfire
-#      environment:
-#        - BLACKFIRE_SERVER_ID=${BLACKFIRE_SERVER_ID}
-#        - BLACKFIRE_SERVER_TOKEN=${BLACKFIRE_SERVER_TOKEN}
-#      depends_on:
-#        - php-fpm
-#      networks:
-#        - spiritias-backend
-#
-#### Apache Server ########################################
+### Apache Server ########################################
 #    apache2:
 #      build:
 #        context: ./apache2
@@ -524,10 +511,10 @@ services:
 #      depends_on:
 #        - php-fpm
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### HHVM #################################################
+#        - frontend
+#        - backend
+
+### HHVM #################################################
 #    hhvm:
 #      build: ./hhvm
 #      volumes:
@@ -537,10 +524,10 @@ services:
 #      depends_on:
 #        - workspace
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### Minio ################################################
+#        - frontend
+#        - backend
+
+### Minio ################################################
 #    minio:
 #      build: ./minio
 #      volumes:
@@ -553,16 +540,15 @@ services:
 #        - MINIO_ROOT_USER=${MINIO_ROOT_USER}
 #        - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 
 ### MySQL ################################################
     mysql:
-      image: 'mysql/mysql-server:8.0'
-#      build:
-#        context: ./mysql
-#        args:
-#          - MYSQL_VERSION=${MYSQL_VERSION}
+      build:
+        context: ./mysql
+        args:
+          - MYSQL_VERSION=${MYSQL_VERSION}
       environment:
         - MYSQL_DATABASE=${MYSQL_DATABASE}
         - MYSQL_USER=${MYSQL_USER}
@@ -572,11 +558,11 @@ services:
         - MYSQL_ROOT_HOST="%"
       volumes:
         - ${DATA_PATH_HOST}/mysql:/var/lib/mysql
-        #- ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+        - ${MYSQL_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
       ports:
         - "${MYSQL_PORT}:3306"
       networks:
-        - spiritias-backend
+        - backend
 
     bloomapi:
       image: mysql:8.0
@@ -599,7 +585,7 @@ services:
       volumes:
         - bloomapidb:/var/lib/mysql
       networks:
-        - spiritias-backend
+        - backend
 
     olddb:
       image: mysql:8.0
@@ -621,30 +607,10 @@ services:
         # Where our data will be persisted
       volumes:
         - olddb:/var/lib/mysql
+      networks:
+        - backend
 
-#    mysql:
-#      image: 'mysql/mysql-server:8.0'
-#      ports:
-#        - "${MYSQL_PORT}:3306"
-#      environment:
-#        MYSQL_ROOT_PASSWORD: '${MYSQL_PASSWORD}'
-#        MYSQL_ROOT_HOST: "%"
-#        MYSQL_DATABASE: '${MYSQL_DATABASE}'
-#        MYSQL_USER: '${MYSQL_USER}'
-#        MYSQL_PASSWORD: '${MYSQL_PASSWORD}'
-#        MYSQL_ROOT_PASSWORD${MYSQL_ROOT_PASSWORD}
-#        MYSQL_ALLOW_EMPTY_PASSWORD: 1
-#      volumes:
-#        - 'sail-mysql:/var/lib/mysql'
-#        - './vendor/laravel/sail/database/mysql/create-testing-database.sh:/docker-entrypoint-initdb.d/10-create-testing-database.sh'
-#      networks:
-#        - sail
-#      healthcheck:
-#        test: [ "CMD", "mysqladmin", "ping", "-p${DB_PASSWORD}" ]
-#        retries: 3
-#        timeout: 5s
-
-#### Percona ################################################
+  ### Percona ################################################
 #    percona:
 #      build:
 #        context: ./percona
@@ -659,9 +625,9 @@ services:
 #      ports:
 #        - "${PERCONA_PORT}:3306"
 #      networks:
-#        - spiritias-backend
-#
-#### MSSQL ################################################
+#        - backend
+
+### MSSQL ################################################
 #    mssql:
 #      build:
 #        context: ./mssql
@@ -675,9 +641,9 @@ services:
 #      ports:
 #        - "${MSSQL_PORT}:1433"
 #      networks:
-#        - spiritias-backend
-#
-#### MariaDB ##############################################
+#        - backend
+
+### MariaDB ##############################################
 #    mariadb:
 #      build:
 #        context: ./mariadb
@@ -687,7 +653,7 @@ services:
 #          - no_proxy
 #          - MARIADB_VERSION=${MARIADB_VERSION}
 #      volumes:
-#        - ${DATA_PATH_HOST}/mariadb:/var/lib/mysql
+#        - ${DATA_PATH_HOST}/mariadb:/var/lib/mariadb
 #        - ${MARIADB_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
 #      ports:
 #        - "${MARIADB_PORT}:3306"
@@ -698,156 +664,156 @@ services:
 #        - MYSQL_PASSWORD=${MARIADB_PASSWORD}
 #        - MYSQL_ROOT_PASSWORD=${MARIADB_ROOT_PASSWORD}
 #      networks:
-#        - spiritias-backend
-#
-#### PostgreSQL ###########################################
-#    postgres:
-#      build:
-#        context: ./postgres
-#        args:
-#          - POSTGRES_VERSION=${POSTGRES_VERSION}
-#      volumes:
-#        - ${DATA_PATH_HOST}/postgres:/var/lib/postgresql/data
-#        - ${POSTGRES_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
-#      ports:
-#        - "${POSTGRES_PORT}:5432"
-#      environment:
-#        - POSTGRES_DB=${POSTGRES_DB}
-#        - POSTGRES_USER=${POSTGRES_USER}
-#        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-#        - GITLAB_POSTGRES_INIT=${GITLAB_POSTGRES_INIT}
-#        - GITLAB_POSTGRES_USER=${GITLAB_POSTGRES_USER}
-#        - GITLAB_POSTGRES_PASSWORD=${GITLAB_POSTGRES_PASSWORD}
-#        - GITLAB_POSTGRES_DB=${GITLAB_POSTGRES_DB}
-#        - JUPYTERHUB_POSTGRES_INIT=${JUPYTERHUB_POSTGRES_INIT}
-#        - JUPYTERHUB_POSTGRES_USER=${JUPYTERHUB_POSTGRES_USER}
-#        - JUPYTERHUB_POSTGRES_PASSWORD=${JUPYTERHUB_POSTGRES_PASSWORD}
-#        - JUPYTERHUB_POSTGRES_DB=${JUPYTERHUB_POSTGRES_DB}
-#        - SONARQUBE_POSTGRES_INIT=${SONARQUBE_POSTGRES_INIT}
-#        - SONARQUBE_POSTGRES_DB=${SONARQUBE_POSTGRES_DB}
-#        - SONARQUBE_POSTGRES_USER=${SONARQUBE_POSTGRES_USER}
-#        - SONARQUBE_POSTGRES_PASSWORD=${SONARQUBE_POSTGRES_PASSWORD}
-#        - POSTGRES_CONFLUENCE_INIT=${CONFLUENCE_POSTGRES_INIT}
-#        - POSTGRES_CONFLUENCE_DB=${CONFLUENCE_POSTGRES_DB}
-#        - POSTGRES_CONFLUENCE_USER=${CONFLUENCE_POSTGRES_USER}
-#        - POSTGRES_CONFLUENCE_PASSWORD=${CONFLUENCE_POSTGRES_PASSWORD}
-#      networks:
-#        - spiritias-backend
-#
-#### PostgreSQL PostGis ###################################
-#    postgres-postgis:
-#      build:
-#        context: ./postgres-postgis
-#        args:
-#          - POSTGIS_VERSION=${POSTGIS_VERSION}
-#          - INSTALL_PGSQL_HTTP_FOR_POSTGIS13=${POSTGIS_INSTALL_PGSQL_HTTP_FOR_POSTGIS13}
-#      volumes:
-#        - ${DATA_PATH_HOST}/postgres:/var/lib/postgresql/data
-#      ports:
-#        - "${POSTGRES_PORT}:5432"
-#      environment:
-#        - POSTGRES_DB=${POSTGRES_DB}
-#        - POSTGRES_USER=${POSTGRES_USER}
-#        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-#      networks:
-#        - spiritias-backend
-#
-#### Neo4j ################################################
-#    neo4j:
-#      ports:
-#          - '7401:7474'
-#          - '7402:7687'
-#      environment:
-#          - NEO4J_AUTH=none
-#      volumes:
-#          - ${DATA_PATH_HOST}/neo4j/data:/data
-#          - ${DATA_PATH_HOST}/neo4j/logs:/logs
-#      image: 'neo4j:latest'
-#      networks:
-#        - spiritias-backend
-#### Nats ################################################
-#    nats:
-#      build: ./nats
-#      ports:
-#        - "${NATS_CLIENT_PORT}:4222"
-#        - "${NATS_MONITORING_PORT}:6222"
-#        - "${NATS_ROUTE_PORT}:8222"
-#      networks:
-#        - spiritias-backend
-#
-#### MongoDB ##############################################
-#    mongo:
-#      build: ./mongo
-#      ports:
-#        - "${MONGODB_PORT}:27017"
-#      environment:
-#        - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
-#        - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
-#      volumes:
-#        - ${DATA_PATH_HOST}/mongo:/data/db
-#        - ${DATA_PATH_HOST}/mongo_config:/data/configdb
-#      networks:
-#        - spiritias-backend
-#
-#### RethinkDB ##############################################
-#    rethinkdb:
-#      build: ./rethinkdb
-#      ports:
-#        - "${RETHINKDB_PORT}:8080"
-#      volumes:
-#        - ${DATA_PATH_HOST}/rethinkdb:/data/rethinkdb_data
-#      networks:
-#        - spiritias-backend
-#
-#  ### ClickHouse #############################################
-#    clickhouse:
-#      build:
-#        context: ./clickhouse
-#        args:
-#          - CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION}
-#          - CLICKHOUSE_GOSU_VERSION=${CLICKHOUSE_GOSU_VERSION}
-#      environment:
-#        - CLICKHOUSE_USER=${CLICKHOUSE_USER}
-#        - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
-#      volumes:
-#        - ${DATA_PATH_HOST}/clickhouse:/var/lib/clickhouse
-#        - ${CLICKHOUSE_CUSTOM_CONFIG}:/etc/clickhouse-server/config.xml
-#        - ${CLICKHOUSE_USERS_CUSTOM_CONFIG}:/etc/clickhouse-server/users.xml
-#        - ${CLICKHOUSE_HOST_LOG_PATH}:/var/log/clickhouse
-#        - ${CLICKHOUSE_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
-#      links:
-#        - workspace
-#      ports:
-#        - "${CLICKHOUSE_HTTP_PORT}:8123"
-#        - "${CLICKHOUSE_CLIENT_PORT}:9000"
-#        - "${CLICKHOUSE_NATIVE_PORT}:9009"
-#      ulimits:
-#        nproc: 65535
-#        nofile:
-#          soft: 262144
-#          hard: 262144
-#      networks:
-##        - spiritias-frontend
-#        - spiritias-backend
+#        - backend
+
+### PostgreSQL ###########################################
+    postgres:
+      build:
+        context: ./postgres
+        args:
+          - POSTGRES_VERSION=${POSTGRES_VERSION}
+      volumes:
+        - ${DATA_PATH_HOST}/postgres:/var/lib/postgresql/data
+        - ${POSTGRES_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+      ports:
+        - "${POSTGRES_PORT}:5432"
+      environment:
+        - POSTGRES_DB=${POSTGRES_DB}
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        - GITLAB_POSTGRES_INIT=${GITLAB_POSTGRES_INIT}
+        - GITLAB_POSTGRES_USER=${GITLAB_POSTGRES_USER}
+        - GITLAB_POSTGRES_PASSWORD=${GITLAB_POSTGRES_PASSWORD}
+        - GITLAB_POSTGRES_DB=${GITLAB_POSTGRES_DB}
+        - JUPYTERHUB_POSTGRES_INIT=${JUPYTERHUB_POSTGRES_INIT}
+        - JUPYTERHUB_POSTGRES_USER=${JUPYTERHUB_POSTGRES_USER}
+        - JUPYTERHUB_POSTGRES_PASSWORD=${JUPYTERHUB_POSTGRES_PASSWORD}
+        - JUPYTERHUB_POSTGRES_DB=${JUPYTERHUB_POSTGRES_DB}
+        - SONARQUBE_POSTGRES_INIT=${SONARQUBE_POSTGRES_INIT}
+        - SONARQUBE_POSTGRES_DB=${SONARQUBE_POSTGRES_DB}
+        - SONARQUBE_POSTGRES_USER=${SONARQUBE_POSTGRES_USER}
+        - SONARQUBE_POSTGRES_PASSWORD=${SONARQUBE_POSTGRES_PASSWORD}
+        - POSTGRES_CONFLUENCE_INIT=${CONFLUENCE_POSTGRES_INIT}
+        - POSTGRES_CONFLUENCE_DB=${CONFLUENCE_POSTGRES_DB}
+        - POSTGRES_CONFLUENCE_USER=${CONFLUENCE_POSTGRES_USER}
+        - POSTGRES_CONFLUENCE_PASSWORD=${CONFLUENCE_POSTGRES_PASSWORD}
+      networks:
+        - backend
+
+### PostgreSQL PostGis ###################################
+    postgres-postgis:
+      build:
+        context: ./postgres-postgis
+        args:
+          - POSTGIS_VERSION=${POSTGIS_VERSION}
+          - INSTALL_PGSQL_HTTP_FOR_POSTGIS13=${POSTGIS_INSTALL_PGSQL_HTTP_FOR_POSTGIS13}
+      volumes:
+        - ${DATA_PATH_HOST}/postgres:/var/lib/postgresql/data
+      ports:
+        - "${POSTGRES_PORT}:5432"
+      environment:
+        - POSTGRES_DB=${POSTGRES_DB}
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      networks:
+        - backend
+
+### Neo4j ################################################
+    neo4j:
+      ports:
+          - '7401:7474'
+          - '7402:7687'
+      environment:
+          - NEO4J_AUTH=none
+      volumes:
+          - ${DATA_PATH_HOST}/neo4j/data:/data
+          - ${DATA_PATH_HOST}/neo4j/logs:/logs
+      image: 'neo4j:latest'
+      networks:
+        - backend
+### Nats ################################################
+    nats:
+      build: ./nats
+      ports:
+        - "${NATS_CLIENT_PORT}:4222"
+        - "${NATS_MONITORING_PORT}:6222"
+        - "${NATS_ROUTE_PORT}:8222"
+      networks:
+        - backend
+
+### MongoDB ##############################################
+    mongo:
+      build: ./mongo
+      ports:
+        - "${MONGODB_PORT}:27017"
+      environment:
+        - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+        - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+      volumes:
+        - ${DATA_PATH_HOST}/mongo:/data/db
+        - ${DATA_PATH_HOST}/mongo_config:/data/configdb
+      networks:
+        - backend
+
+### RethinkDB ##############################################
+    rethinkdb:
+      build: ./rethinkdb
+      ports:
+        - "${RETHINKDB_PORT}:8080"
+      volumes:
+        - ${DATA_PATH_HOST}/rethinkdb:/data/rethinkdb_data
+      networks:
+        - backend
+
+  ### ClickHouse #############################################
+    clickhouse:
+      build:
+        context: ./clickhouse
+        args:
+          - CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION}
+          - CLICKHOUSE_GOSU_VERSION=${CLICKHOUSE_GOSU_VERSION}
+      environment:
+        - CLICKHOUSE_USER=${CLICKHOUSE_USER}
+        - CLICKHOUSE_PASSWORD=${CLICKHOUSE_PASSWORD}
+      volumes:
+        - ${DATA_PATH_HOST}/clickhouse:/var/lib/clickhouse
+        - ${CLICKHOUSE_CUSTOM_CONFIG}:/etc/clickhouse-server/config.xml
+        - ${CLICKHOUSE_USERS_CUSTOM_CONFIG}:/etc/clickhouse-server/users.xml
+        - ${CLICKHOUSE_HOST_LOG_PATH}:/var/log/clickhouse
+        - ${CLICKHOUSE_ENTRYPOINT_INITDB}:/docker-entrypoint-initdb.d
+      links:
+        - workspace
+      ports:
+        - "${CLICKHOUSE_HTTP_PORT}:8123"
+        - "${CLICKHOUSE_CLIENT_PORT}:9000"
+        - "${CLICKHOUSE_NATIVE_PORT}:9009"
+      ulimits:
+        nproc: 65535
+        nofile:
+          soft: 262144
+          hard: 262144
+      networks:
+#        - frontend
+        - backend
 
   ### Redis ################################################
     redis:
       build: ./redis
       volumes:
         - ${DATA_PATH_HOST}/redis:/data
-      #command: --requirepass ${REDIS_PASSWORD}
+      command: --requirepass ${REDIS_PASSWORD}
       ports:
         - "${REDIS_PORT}:6379"
       networks:
-        - spiritias-backend
+        - backend
 
-#### Redis Cluster ##########################################
+### Redis Cluster ##########################################
 #    redis-cluster:
 #      build: ./redis-cluster
 #      ports:
 #        - "${REDIS_CLUSTER_PORT_RANGE}:7000-7005"
 #      networks:
-#        - spiritias-backend
+#        - backend
 #### SSDB ################################################
 #    ssdb:
 #      build: ./ssdb
@@ -856,9 +822,9 @@ services:
 #      ports:
 #        - "${SSDB_PORT}:8888"
 #      networks:
-#        - spiritias-backend
-#
-#### ZooKeeper #########################################
+#        - backend
+
+### ZooKeeper #########################################
 #    zookeeper:
 #      build: ./zookeeper
 #      volumes:
@@ -867,9 +833,9 @@ services:
 #      ports:
 #        - "${ZOOKEEPER_PORT}:2181"
 #      networks:
-#        - spiritias-backend
-#
-#### Aerospike ##########################################
+#        - backend
+
+### Aerospike ##########################################
 #    aerospike:
 #      build: ./aerospike
 #      volumes:
@@ -885,7 +851,7 @@ services:
 #        - MEM_GB=${AEROSPIKE_MEM_GB}
 #        - NAMESPACE=${AEROSPIKE_NAMESPACE}
 #      networks:
-#        - spiritias-backend
+#        - backend
 
 ### Memcached ############################################
     memcached:
@@ -897,9 +863,9 @@ services:
       depends_on:
         - php-fpm
       networks:
-        - spiritias-backend
+        - backend
 
-#### Beanstalkd ###########################################
+### Beanstalkd ###########################################
 #    beanstalkd:
 #      build: ./beanstalkd
 #      ports:
@@ -908,9 +874,9 @@ services:
 #      depends_on:
 #        - php-fpm
 #      networks:
-#        - spiritias-backend
-#
-#### SQS #############################################
+#        - backend
+
+### SQS #############################################
 #    sqs:
 #      build: ./sqs
 #      ports:
@@ -921,8 +887,8 @@ services:
 #      volumes:
 #        - ${DATA_PATH_HOST}/sqs:/opt/custom
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 
 ### RabbitMQ #############################################
     rabbitmq:
@@ -941,9 +907,9 @@ services:
       depends_on:
         - php-fpm
       networks:
-        - spiritias-backend
+        - backend
 
-#### Mercure #############################################
+### Mercure #############################################
 #    mercure:
 #      build: ./mercure
 #      ports:
@@ -958,10 +924,10 @@ services:
 #        - MERCURE_EXTRA_DIRECTIVES=cors_allowed_origins *\npublish_allowed_origins http://localhost:${MERCURE_NODE_HOST_HTTP_PORT} https://localhost:${MERCURE_NODE_HOST_HTTP_PORT}
 #      hostname: laradock-mercure
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### Cassandra ############################################
+#        - frontend
+#        - backend
+
+### Cassandra ############################################
 #    cassandra:
 #      build: ./cassandra
 #      ports:
@@ -991,9 +957,9 @@ services:
 #      depends_on:
 #        - php-fpm
 #      networks:
-#        - spiritias-backend
-#
-#### Gearman ############################################
+#        - backend
+
+### Gearman ############################################
 #    gearman:
 #      build: ./gearman
 #      ports:
@@ -1024,9 +990,9 @@ services:
 #      depends_on:
 #        - php-fpm
 #      networks:
-#        - spiritias-backend
-#
-#### Beanstalkd Console ###################################
+#        - backend
+
+### Beanstalkd Console ###################################
 #    beanstalkd-console:
 #      build: ./beanstalkd-console
 #      ports:
@@ -1034,9 +1000,9 @@ services:
 #      depends_on:
 #        - beanstalkd
 #      networks:
-#        - spiritias-backend
-#
-#### Caddy Server #########################################
+#        - backend
+
+### Caddy Server #########################################
 #    caddy:
 #      build: ./caddy
 #      volumes:
@@ -1050,10 +1016,10 @@ services:
 #      depends_on:
 #        - php-fpm
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### phpMyAdmin ###########################################
+#        - frontend
+#        - backend
+
+### phpMyAdmin ###########################################
 #    phpmyadmin:
 #      build: ./phpmyadmin
 #      environment:
@@ -1069,10 +1035,10 @@ services:
 #      depends_on:
 #        - "${PMA_DB_ENGINE}"
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### Adminer ###########################################
+#        - frontend
+#        - backend
+
+### Adminer ###########################################
 #    adminer:
 #      build:
 #        context: ./adminer
@@ -1087,10 +1053,10 @@ services:
 #      depends_on:
 #        - php-fpm
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### pgAdmin ##############################################
+#        - frontend
+#        - backend
+
+### pgAdmin ##############################################
 #    pgadmin:
 #      image: dpage/pgadmin4:latest
 #      environment:
@@ -1103,10 +1069,10 @@ services:
 #      depends_on:
 #        - postgres
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### MeiliSearch ##########################################
+#        - frontend
+#        - backend
+
+### MeiliSearch ##########################################
 #    meilisearch:
 #      image: getmeili/meilisearch:latest
 #      volumes:
@@ -1114,42 +1080,42 @@ services:
 #      ports:
 #        - "${MEILISEARCH_HOST_PORT}:7700"
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 
 ### ElasticSearch ########################################
-    elasticsearch:
-      build:
-        context: ./elasticsearch
-        args:
-          - ELK_VERSION=${ELK_VERSION}
-      volumes:
-        - elasticsearch:/usr/share/elasticsearch/data
-      environment:
-        - cluster.name=laradock-cluster
-        - node.name=laradock-node
-        - bootstrap.memory_lock=true
-        - xpack.security.enabled=false
-        - xpack.security.transport.ssl.enabled=false
-        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
-        - cluster.initial_master_nodes=laradock-node
-      ulimits:
-        memlock:
-          soft: -1
-          hard: -1
-        nofile:
-          soft: 65536
-          hard: 65536
-      ports:
-        - "${ELASTICSEARCH_HOST_HTTP_PORT}:9200"
-        - "${ELASTICSEARCH_HOST_TRANSPORT_PORT}:9300"
-      depends_on:
-        - php-fpm
-      networks:
-        - spiritias-frontend
-        - spiritias-backend
+#    elasticsearch:
+#      build:
+#        context: ./elasticsearch
+#        args:
+#          - ELK_VERSION=${ELK_VERSION}
+#      volumes:
+#        - elasticsearch:/usr/share/elasticsearch/data
+#      environment:
+#        - cluster.name=laradock-cluster
+#        - node.name=laradock-node
+#        - bootstrap.memory_lock=true
+#        - xpack.security.enabled=false
+#        - xpack.security.transport.ssl.enabled=false
+#        - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+#        - cluster.initial_master_nodes=laradock-node
+#      ulimits:
+#        memlock:
+#          soft: -1
+#          hard: -1
+#        nofile:
+#          soft: 65536
+#          hard: 65536
+#      ports:
+#        - "${ELASTICSEARCH_HOST_HTTP_PORT}:9200"
+#        - "${ELASTICSEARCH_HOST_TRANSPORT_PORT}:9300"
+#      depends_on:
+#        - php-fpm
+#      networks:
+#        - frontend
+#        - backend
 
-#### Logstash ##############################################
+### Logstash ##############################################
 #    logstash:
 #      build:
 #        context: ./logstash
@@ -1165,12 +1131,12 @@ services:
 #      env_file:
 #        - .env
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 #      depends_on:
 #        - elasticsearch
-#
-#### Kibana ##############################################
+
+### Kibana ##############################################
 #    kibana:
 #      build:
 #        context: ./kibana
@@ -1181,10 +1147,10 @@ services:
 #      depends_on:
 #        - elasticsearch
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### Dejavu ##############################################
+#        - frontend
+#        - backend
+
+### Dejavu ##############################################
 #    dejavu:
 #      build:
 #        context: ./dejavu
@@ -1193,10 +1159,10 @@ services:
 #      depends_on:
 #        - elasticsearch
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### Certbot #########################################
+#        - frontend
+#        - backend
+
+### Certbot #########################################
 #    certbot:
 #      build:
 #        context: ./certbot
@@ -1207,17 +1173,17 @@ services:
 #        - CN="fake.domain.com"
 #        - EMAIL="fake.email@gmail.com"
 #      networks:
-#        - spiritias-frontend
-#
-#### MailCatcher ################################################
+#        - frontend
+
+### MailCatcher ################################################
 #    mailcatcher:
 #      build: ./mailcatcher
 #      ports:
 #        - "1025:1025"
 #        - "1080:1080"
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 
 ### Mailhog ################################################
 #    mailhog:
@@ -1226,20 +1192,20 @@ services:
 #        - "1025:1025"
 #        - "8025:8025"
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 
-#### MailDev ##############################################
+### MailDev ##############################################
 #    maildev:
 #      build: ./maildev
 #      ports:
 #        - "${MAILDEV_HTTP_PORT}:80"
 #        - "${MAILDEV_SMTP_PORT}:25"
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### Selenium ###############################################
+#        - frontend
+#        - backend
+
+### Selenium ###############################################
 #    selenium:
 #      build: ./selenium
 #      ports:
@@ -1247,9 +1213,9 @@ services:
 #      volumes:
 #        - /dev/shm:/dev/shm
 #      networks:
-#        - spiritias-frontend
-#
-#### Varnish ##########################################
+#        - frontend
+
+### Varnish ##########################################
 #    proxy:
 #      container_name: proxy
 #      build: ./varnish
@@ -1260,16 +1226,16 @@ services:
 #        - CACHE_SIZE=${VARNISH_PROXY1_CACHE_SIZE}
 #        - VARNISHD_PARAMS=${VARNISHD_PARAMS}
 #        - VARNISH_PORT=${VARNISH_PORT}
-#        - spiritias-backend_HOST=${VARNISH_PROXY1_BACKEND_HOST}
-#        - spiritias-backend_PORT=${VARNISH_BACKEND_PORT}
+#        - BACKEND_HOST=${VARNISH_PROXY1_BACKEND_HOST}
+#        - BACKEND_PORT=${VARNISH_BACKEND_PORT}
 #        - VARNISH_SERVER=${VARNISH_PROXY1_SERVER}
 #      ports:
 #        - "${VARNISH_PORT}:${VARNISH_PORT}"
 #      links:
 #        - workspace
 #      networks:
-#        - spiritias-frontend
-#
+#        - frontend
+
 #    proxy2:
 #      container_name: proxy2
 #      build: ./varnish
@@ -1280,17 +1246,17 @@ services:
 #        - CACHE_SIZE=${VARNISH_PROXY2_CACHE_SIZE}
 #        - VARNISHD_PARAMS=${VARNISHD_PARAMS}
 #        - VARNISH_PORT=${VARNISH_PORT}
-#        - spiritias-backend_HOST=${VARNISH_PROXY2_BACKEND_HOST}
-#        - spiritias-backend_PORT=${VARNISH_BACKEND_PORT}
+#        - BACKEND_HOST=${VARNISH_PROXY2_BACKEND_HOST}
+#        - BACKEND_PORT=${VARNISH_BACKEND_PORT}
 #        - VARNISH_SERVER=${VARNISH_PROXY2_SERVER}
 #      ports:
 #        - "${VARNISH_PORT}:${VARNISH_PORT}"
 #      links:
 #        - workspace
 #      networks:
-#        - spiritias-frontend
-#
-#### HAProxy ####################################
+#        - frontend
+
+### HAProxy ####################################
 #    haproxy:
 #      build: ./haproxy
 #      ports:
@@ -1300,8 +1266,8 @@ services:
 #      links:
 #        - proxy
 #        - proxy2
-#
-#### Jenkins ###################################################
+
+### Jenkins ###################################################
 #    jenkins:
 #      build: ./jenkins
 #      environment:
@@ -1314,10 +1280,10 @@ services:
 #        - ${JENKINS_HOME}:/var/jenkins_home
 #        - /var/run/docker.sock:/var/run/docker.sock
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
-#
-#### Grafana ################################################
+#        - frontend
+#        - backend
+
+### Grafana ################################################
 #    grafana:
 #      build:
 #        context: ./grafana
@@ -1326,9 +1292,9 @@ services:
 #      ports:
 #        - "${GRAFANA_PORT}:3000"
 #      networks:
-#        - spiritias-backend
-#
-#### Graylog #######################################
+#        - backend
+
+### Graylog #######################################
 #    graylog:
 #      build: ./graylog
 #      environment:
@@ -1356,7 +1322,7 @@ services:
 #      volumes:
 #        - ${DATA_PATH_HOST}/graylog:/usr/share/graylog/data
 #      networks:
-#        - spiritias-backend
+#        - backend
 
 ### Laravel Echo Server #######################################
     laravel-echo-server:
@@ -1371,10 +1337,10 @@ services:
       links:
         - redis
       networks:
-        - spiritias-frontend
-        - spiritias-backend
+        - frontend
+        - backend
 
-#### Solr ################################################
+### Solr ################################################
 #    solr:
 #      build:
 #        context: ./solr
@@ -1387,7 +1353,7 @@ services:
 #      ports:
 #        - "${SOLR_PORT}:8983"
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #### Thumbor #########################################
 #    thumbor:
@@ -1502,8 +1468,8 @@ services:
 #        - TC_AWS_ALLOWED_BUCKETS=${TC_AWS_ALLOWED_BUCKETS}
 #        - TC_AWS_STORE_METADATA=${TC_AWS_STORE_METADATA}
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 #
 #### AWS EB-CLI ################################################
 #    aws:
@@ -1527,7 +1493,7 @@ services:
 #      ports:
 #        - 9010:9000
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #### Gitlab ################################################
 #    gitlab:
@@ -1559,7 +1525,7 @@ services:
 #        - "${GITLAB_HOST_HTTPS_PORT}:443"
 #        - "${GITLAB_HOST_SSH_PORT}:22"
 #      networks:
-#        - spiritias-backend
+#        - backend
 #      depends_on:
 #        - redis
 #        - postgres
@@ -1590,7 +1556,7 @@ services:
 #        - ${JUPYTERHUB_USER_DATA}:/user-data
 #        - ${JUPYTERHUB_USER_LIST}:/userlist
 #      networks:
-#        - spiritias-backend
+#        - backend
 #      ports:
 #        - "${JUPYTERHUB_PORT}:80"
 #      environment:
@@ -1617,7 +1583,7 @@ services:
 #        context: ./ipython
 #        dockerfile: Dockerfile.controller
 #      networks:
-#        - spiritias-backend
+#        - backend
 #      extra_hosts:
 #        - "laradock-ipython:${LARADOCK_IPYTHON_CONTROLLER_IP}"
 #      ports:
@@ -1627,7 +1593,7 @@ services:
 #        context: ./ipython
 #        dockerfile: Dockerfile.engine
 #      networks:
-#        - spiritias-backend
+#        - backend
 #      extra_hosts:
 #        - "laradock-ipython:${LARADOCK_IPYTHON_CONTROLLER_IP}"
 
@@ -1643,9 +1609,9 @@ services:
       expose:
         - 2375
       networks:
-        - spiritias-backend
+        - backend
 
-#### NetData ################################################
+### NetData ################################################
 #    netdata:
 #      image: netdata/netdata:latest
 #      cap_add:
@@ -1657,7 +1623,7 @@ services:
 #      ports:
 #        - "${NETDATA_PORT}:19999"
 #      networks:
-#        - spiritias-backend
+#        - backend
 
 ### REDISWEBUI ################################################
     redis-webui:
@@ -1670,351 +1636,351 @@ services:
         - REDIS_1_PORT=${REDIS_WEBUI_CONNECT_PORT}
         - REDIS_1_AUTH=${REDIS_PASSWORD}
       networks:
-        - spiritias-backend
+        - backend
       ports:
         - "${REDIS_WEBUI_PORT}:80"
       depends_on:
         - redis
 
-#  ### MongoWebUI ################################################
-#      mongo-webui:
-#        build:
-#          context: ./mongo-webui
-#        environment:
-#          - ROOT_URL=${MONGO_WEBUI_ROOT_URL}
-#          - MONGO_URL=${MONGO_WEBUI_MONGO_URL}
-#          - INSTALL_MONGO=${MONGO_WEBUI_INSTALL_MONGO}
-#        volumes:
-#          - ${DATA_PATH_HOST}/mongo-webui:/data/db
-#        ports:
-#          - "${MONGO_WEBUI_PORT}:3000"
-#        networks:
-#          - spiritias-backend
-#        depends_on:
-#          - mongo
-#  
-#  ### Metabase #################################################
-#      metabase:
-#        image: metabase/metabase:latest
-#        environment:
-#          - MB_DB_FILE=/metabase-data/${METABASE_DB_FILE}
-#        ports:
-#          - ${METABASE_PORT}:3000
-#        volumes:
-#          - ${DATA_PATH_HOST}/metabase-data:/metabase-data
-#        networks:
-#          - spiritias-backend
-#  
-#  ### Weaver (Athena PDF) #################################################
-#      weaver:
-#        image: arachnysdocker/athenapdf-service
-#        ports:
-#          - "8080:8080"
-#        env_file:
-#          - ./weaver/conf/sample.env
-#        networks:
-#          - spiritias-backend
-#        depends_on:
-#          - workspace
-#  
-#  ### IDE-THEIA ################################################
-#      ide-theia:
-#        build:
-#          context: ./ide-theia
-#        volumes:
-#          - ${APP_CODE_PATH_HOST}:/home/project
-#        ports:
-#          - "${IDE_THEIA_PORT}:3000"
-#        networks:
-#          - spiritias-backend
-#  
-#  ### IDE-WEBIDE ################################################
-#      ide-webide:
-#        build:
-#          context: ./ide-webide
-#        volumes:
-#          - ${DATA_PATH_HOST}/ide/webide/ide.db:/root/.coding-ide/ide.db
-#        ports:
-#          - "${IDE_WEBIDE_PORT}:8080"
-#        networks:
-#          - spiritias-backend
-#  
-#  ### IDE-CODIAD ################################################
-#      ide-codiad:
-#        build:
-#          context: ./ide-codiad
-#        environment:
-#          - APP_CODE_PATH_CONTAINER=${APP_CODE_PATH_CONTAINER}
-#          - TZ=${WORKSPACE_TIMEZONE}
-#          - PGID=1000
-#          - PUID=1000
-#        volumes:
-#          - /etc/localtime:/etc/localtime:ro
-#          - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
-#          - ${DATA_PATH_HOST}/ide/codiad:/config
-#        ports:
-#          - "${IDE_CODIAD_PORT}:80"
-#        networks:
-#          - spiritias-backend
-#  
-#  ### IDE-ICECODER ################################################
-#      ide-icecoder:
-#        build:
-#          context: ./ide-icecoder
-#        environment:
-#          - DOCUMENT_ROOT=${APP_CODE_PATH_CONTAINER}
-#          - TZ=${WORKSPACE_TIMEZONE}
-#          - PGID=1000
-#          - PUID=1000
-#        volumes:
-#          - /etc/localtime:/etc/localtime:ro
-#          - ${APP_CODE_PATH_HOST}:/home/laradock/ICEcoder/dev
-#        ports:
-#          - "${IDE_ICECODER_PORT}:8080"
-#        networks:
-#          - spiritias-backend
-#  
-#  ### DOCKER-REGISTRY ################################################
-#      docker-registry:
-#        build:
-#          context: ./docker-registry
-#        volumes:
-#          - /etc/localtime:/etc/localtime:ro
-#          - ${DATA_PATH_HOST}/docker-registry:/var/lib/registry
-#        ports:
-#          - "${DOCKER_REGISTRY_PORT}:5000"
-#        networks:
-#          - spiritias-backend
-#  
-#  ### DOCKER-WEB-UI ################################################
-#      docker-web-ui:
-#        build:
-#          context: ./docker-web-ui
-#        environment:
-#          - TZ=${WORKSPACE_TIMEZONE}
-#          - ENV_DOCKER_REGISTRY_HOST=${DOCKER_WEBUI_REGISTRY_HOST}
-#          - ENV_DOCKER_REGISTRY_PORT=${DOCKER_WEBUI_REGISTRY_PORT}
-#          - ENV_DOCKER_REGISTRY_USE_SSL=${DOCKER_REGISTRY_USE_SSL}
-#          - ENV_MODE_BROWSE_ONLY=${DOCKER_REGISTRY_BROWSE_ONLY}
-#        volumes:
-#          - /etc/localtime:/etc/localtime:ro
-#        ports:
-#          - "${DOCKER_WEBUI_PORT}:80"
-#        networks:
-#          - spiritias-frontend
-#          - spiritias-backend
-#  
-#  ### MAILU ################################################
-#      mailu:
-#        image: mailu/admin:${MAILU_VERSION}
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/data:/data"
-#          - "${DATA_PATH_HOST}/mailu/dkim:/dkim"
-#          - "${DATA_PATH_HOST}/mailu/webmail:/webmail"
-#          - /var/run/docker.sock:/var/run/docker.sock:ro
-#        depends_on:
-#          - mailu-front
-#          - mailu-imap
-#          - mailu-smtp
-#          - mailu-antispam
-#          - mailu-antivirus
-#          - mailu-webdav
-#          - mailu-admin
-#          - mailu-webmail
-#          - mailu-fetchmail
-#        command: ["sh", "-c", "echo ${MAILU_INIT_ADMIN_USERNAME}@${MAILU_DOMAIN} ${MAILU_INIT_ADMIN_PASSWORD} ;python manage.py advertise ; python manage.py db upgrade ; python manage.py admin ${MAILU_INIT_ADMIN_USERNAME} ${MAILU_DOMAIN} ${MAILU_INIT_ADMIN_PASSWORD} || true;sed -i -- \"s/= Off/= On/g\" /webmail/_data_/_default_/configs/config.ini || true;if grep -Fq \"registration_link_url\" /webmail/_data_/_default_/configs/config.ini;then echo Already set!;else echo \"\" >> /webmail/_data_/_default_/configs/config.ini; echo \"[login]\" >> /webmail/_data_/_default_/configs/config.ini;echo \"registration_link_url = '${MAILU_WEBSITE}${MAILU_WEB_ADMIN}/ui/user/signup'\" >> /webmail/_data_/_default_/configs/config.ini;fi"]
-#        networks:
-#          - spiritias-backend
-#      mailu-front:
-#        image: mailu/nginx:${MAILU_VERSION}
-#        environment:
-#          - ADMIN=${MAILU_ADMIN}
-#          - WEB_ADMIN=${MAILU_WEB_ADMIN}
-#          - WEB_WEBMAIL=${MAILU_WEB_WEBMAIL}
-#          - WEBDAV=${MAILU_WEBDAV}
-#          - HOSTNAMES=${MAILU_HOSTNAMES}
-#          - TLS_FLAVOR=${MAILU_TLS_FLAVOR}
-#          - MESSAGE_SIZE_LIMIT=${MAILU_MESSAGE_SIZE_LIMIT}
-#        ports:
-#          - "${MAILU_HTTP_PORT}:80"
-#          - "${MAILU_HTTPS_PORT}:443"
-#          - "110:110"
-#          - "143:143"
-#          - "993:993"
-#          - "995:995"
-#          - "25:25"
-#          - "465:465"
-#          - "587:587"
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/certs:/certs"
-#        networks:
-#          backend:
-#            aliases:
-#              - front
-#      mailu-imap:
-#        image: mailu/dovecot:${MAILU_VERSION}
-#        environment:
-#          - DOMAIN=${MAILU_DOMAIN}
-#          - HOSTNAMES=${MAILU_HOSTNAMES}
-#          - POSTMASTER=${MAILU_POSTMASTER}
-#          - WEBMAIL=${MAILU_WEBMAIL}
-#          - RECIPIENT_DELIMITER=${MAILU_RECIPIENT_DELIMITER}
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/data:/data"
-#          - "${DATA_PATH_HOST}/mailu/mail:/mail"
-#          - "${DATA_PATH_HOST}/mailu/overrides:/overrides"
-#        depends_on:
-#          - mailu-front
-#        networks:
-#          backend:
-#            aliases:
-#              - imap
-#      mailu-smtp:
-#        image: mailu/postfix:${MAILU_VERSION}
-#        environment:
-#          - DOMAIN=${MAILU_DOMAIN}
-#          - HOSTNAMES=${MAILU_HOSTNAMES}
-#          - RELAYHOST=${MAILU_RELAYHOST}
-#          - RELAYNETS=${MAILU_RELAYNETS}
-#          - RECIPIENT_DELIMITER=${MAILU_RECIPIENT_DELIMITER}
-#          - MESSAGE_SIZE_LIMIT=${MAILU_MESSAGE_SIZE_LIMIT}
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/data:/data"
-#          - "${DATA_PATH_HOST}/mailu/overrides:/overrides"
-#        depends_on:
-#          - mailu-front
-#        networks:
-#          backend:
-#            aliases:
-#              - smtp
-#      mailu-antispam:
-#        image: mailu/rspamd:${MAILU_VERSION}
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/filter:/var/lib/rspamd"
-#          - "${DATA_PATH_HOST}/mailu/dkim:/dkim"
-#          - "${DATA_PATH_HOST}/mailu/overrides/rspamd:/etc/rspamd/override.d"
-#        depends_on:
-#          - mailu-front
-#        networks:
-#          backend:
-#            aliases:
-#              - antispam
-#      mailu-antivirus:
-#        image: mailu/clamav:${MAILU_VERSION}
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/filter:/data"
-#        networks:
-#          backend:
-#            aliases:
-#              - antivirus
-#      mailu-webdav:
-#        image: mailu/${MAILU_WEBDAV}:${MAILU_VERSION}
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/dav:/data"
-#        networks:
-#          backend:
-#            aliases:
-#              - webdav
-#      mailu-admin:
-#        image: mailu/admin:${MAILU_VERSION}
-#        environment:
-#          - DOMAIN=${MAILU_DOMAIN}
-#          - HOSTNAMES=${MAILU_HOSTNAMES}
-#          - POSTMASTER=${MAILU_POSTMASTER}
-#          - SECRET_KEY=${MAILU_SECRET_KEY}
-#          - AUTH_RATELIMIT=${MAILU_AUTH_RATELIMIT}
-#          - TLS_FLAVOR=${MAILU_TLS_FLAVOR}
-#          - DISABLE_STATISTICS=${MAILU_DISABLE_STATISTICS}
-#          - DMARC_RUA=${MAILU_DMARC_RUA}
-#          - DMARC_RUF=${MAILU_DMARC_RUF}
-#          - WELCOME=${MAILU_WELCOME}
-#          - WELCOME_SUBJECT=${MAILU_WELCOME_SUBJECT}
-#          - WELCOME_BODY=${MAILU_WELCOME_BODY}
-#          - WEB_ADMIN=${MAILU_WEB_ADMIN}
-#          - WEB_WEBMAIL=${MAILU_WEB_WEBMAIL}
-#          - WEBSITE=${MAILU_WEBSITE}
-#          - WEBMAIL=${MAILU_WEBMAIL}
-#          - SITENAME=${MAILU_SITENAME}
-#          - PASSWORD_SCHEME=${MAILU_PASSWORD_SCHEME}
-#          - RECAPTCHA_PUBLIC_KEY=${MAILU_RECAPTCHA_PUBLIC_KEY}
-#          - RECAPTCHA_PRIVATE_KEY=${MAILU_RECAPTCHA_PRIVATE_KEY}
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/data:/data"
-#          - "${DATA_PATH_HOST}/mailu/dkim:/dkim"
-#          - /var/run/docker.sock:/var/run/docker.sock:ro
-#        depends_on:
-#          - redis
-#        networks:
-#          backend:
-#            aliases:
-#              - admin
-#      mailu-webmail:
-#        image: "mailu/${MAILU_WEBMAIL}:${MAILU_VERSION}"
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/webmail:/data"
-#        networks:
-#          backend:
-#            aliases:
-#              - webmail
-#      mailu-fetchmail:
-#        image: mailu/fetchmail:${MAILU_VERSION}
-#        environment:
-#          - FETCHMAIL_DELAY=${MAILU_FETCHMAIL_DELAY}
-#        volumes:
-#          - "${DATA_PATH_HOST}/mailu/data:/data"
-#        networks:
-#          backend:
-#            aliases:
-#              - fetchmail
-#  
-#  ### TRAEFIK #########################################
-#      traefik:
-#        build:
-#          context: ./traefik
-#        volumes:
-#          - /var/run/docker.sock:/var/run/docker.sock
-#          - ./traefik/data:/data
-#        command:
-#          - "--api"
-#          - "--providers.docker.exposedbydefault=false"
-#          - "--accesslog.filepath=/data/access.log"
-#          # entrypoints
-#          - "--entrypoints.http.address=:${TRAEFIK_HOST_HTTP_PORT}"
-#          - "--entrypoints.http.http.redirections.entrypoint.to=https"
-#          - "--entrypoints.https.address=:${TRAEFIK_HOST_HTTPS_PORT}"
-#          - "--entrypoints.traefik.address=:${TRAEFIK_DASHBOARD_PORT}"
-#          # certificatesresolvers
-#          - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
-#          - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
-#          - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=http"
-#        ports:
-#          - "${TRAEFIK_HOST_HTTP_PORT}:${TRAEFIK_HOST_HTTP_PORT}"
-#          - "${TRAEFIK_HOST_HTTPS_PORT}:${TRAEFIK_HOST_HTTPS_PORT}"
-#          - "${TRAEFIK_DASHBOARD_PORT}:${TRAEFIK_DASHBOARD_PORT}"
-#        networks:
-#          - spiritias-frontend
-#          - spiritias-backend
-#        labels:
-#          - "traefik.enable=true"
-#          - "traefik.http.routers.traefik.rule=Host(`${ACME_DOMAIN}`)"
-#          - "traefik.http.routers.traefik.entrypoints=traefik"
-#          - "traefik.http.routers.traefik.service=api@internal"
-#          - "traefik.http.routers.traefik.middlewares=access-auth"
-#          - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
-#          - "traefik.http.middlewares.access-auth.basicauth.realm=Login Required"
-#          - "traefik.http.middlewares.access-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}"
-#  
-#  ### MOSQUITTO Broker #########################################
-#      mosquitto:
-#        build:
-#          context: ./mosquitto
-#        volumes:
-#          - ${DATA_PATH_HOST}/mosquitto/data:/mosquitto/data
-#        ports:
+### MongoWebUI ################################################
+#    mongo-webui:
+#      build:
+#        context: ./mongo-webui
+#      environment:
+#        - ROOT_URL=${MONGO_WEBUI_ROOT_URL}
+#        - MONGO_URL=${MONGO_WEBUI_MONGO_URL}
+#        - INSTALL_MONGO=${MONGO_WEBUI_INSTALL_MONGO}
+#      volumes:
+#        - ${DATA_PATH_HOST}/mongo-webui:/data/db
+#      ports:
+#        - "${MONGO_WEBUI_PORT}:3000"
+#      networks:
+#        - backend
+#      depends_on:
+#        - mongo
+#
+#### Metabase #################################################
+#    metabase:
+#      image: metabase/metabase:latest
+#      environment:
+#        - MB_DB_FILE=/metabase-data/${METABASE_DB_FILE}
+#      ports:
+#        - ${METABASE_PORT}:3000
+#      volumes:
+#        - ${DATA_PATH_HOST}/metabase-data:/metabase-data
+#      networks:
+#        - backend
+#
+#### Weaver (Athena PDF) #################################################
+#    weaver:
+#      image: arachnysdocker/athenapdf-service
+#      ports:
+#        - "8080:8080"
+#      env_file:
+#        - ./weaver/conf/sample.env
+#      networks:
+#        - backend
+#      depends_on:
+#        - workspace
+#
+#### IDE-THEIA ################################################
+#    ide-theia:
+#      build:
+#        context: ./ide-theia
+#      volumes:
+#        - ${APP_CODE_PATH_HOST}:/home/project
+#      ports:
+#        - "${IDE_THEIA_PORT}:3000"
+#      networks:
+#        - backend
+#
+#### IDE-WEBIDE ################################################
+#    ide-webide:
+#      build:
+#        context: ./ide-webide
+#      volumes:
+#        - ${DATA_PATH_HOST}/ide/webide/ide.db:/root/.coding-ide/ide.db
+#      ports:
+#        - "${IDE_WEBIDE_PORT}:8080"
+#      networks:
+#        - backend
+#
+#### IDE-CODIAD ################################################
+#    ide-codiad:
+#      build:
+#        context: ./ide-codiad
+#      environment:
+#        - APP_CODE_PATH_CONTAINER=${APP_CODE_PATH_CONTAINER}
+#        - TZ=${WORKSPACE_TIMEZONE}
+#        - PGID=1000
+#        - PUID=1000
+#      volumes:
+#        - /etc/localtime:/etc/localtime:ro
+#        - ${APP_CODE_PATH_HOST}:${APP_CODE_PATH_CONTAINER}
+#        - ${DATA_PATH_HOST}/ide/codiad:/config
+#      ports:
+#        - "${IDE_CODIAD_PORT}:80"
+#      networks:
+#        - backend
+#
+#### IDE-ICECODER ################################################
+#    ide-icecoder:
+#      build:
+#        context: ./ide-icecoder
+#      environment:
+#        - DOCUMENT_ROOT=${APP_CODE_PATH_CONTAINER}
+#        - TZ=${WORKSPACE_TIMEZONE}
+#        - PGID=1000
+#        - PUID=1000
+#      volumes:
+#        - /etc/localtime:/etc/localtime:ro
+#        - ${APP_CODE_PATH_HOST}:/home/laradock/ICEcoder/dev
+#      ports:
+#        - "${IDE_ICECODER_PORT}:8080"
+#      networks:
+#        - backend
+#
+#### DOCKER-REGISTRY ################################################
+#    docker-registry:
+#      build:
+#        context: ./docker-registry
+#      volumes:
+#        - /etc/localtime:/etc/localtime:ro
+#        - ${DATA_PATH_HOST}/docker-registry:/var/lib/registry
+#      ports:
+#        - "${DOCKER_REGISTRY_PORT}:5000"
+#      networks:
+#        - backend
+#
+#### DOCKER-WEB-UI ################################################
+#    docker-web-ui:
+#      build:
+#        context: ./docker-web-ui
+#      environment:
+#        - TZ=${WORKSPACE_TIMEZONE}
+#        - ENV_DOCKER_REGISTRY_HOST=${DOCKER_WEBUI_REGISTRY_HOST}
+#        - ENV_DOCKER_REGISTRY_PORT=${DOCKER_WEBUI_REGISTRY_PORT}
+#        - ENV_DOCKER_REGISTRY_USE_SSL=${DOCKER_REGISTRY_USE_SSL}
+#        - ENV_MODE_BROWSE_ONLY=${DOCKER_REGISTRY_BROWSE_ONLY}
+#      volumes:
+#        - /etc/localtime:/etc/localtime:ro
+#      ports:
+#        - "${DOCKER_WEBUI_PORT}:80"
+#      networks:
+#        - frontend
+#        - backend
+#
+#### MAILU ################################################
+#    mailu:
+#      image: mailu/admin:${MAILU_VERSION}
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/data:/data"
+#        - "${DATA_PATH_HOST}/mailu/dkim:/dkim"
+#        - "${DATA_PATH_HOST}/mailu/webmail:/webmail"
+#        - /var/run/docker.sock:/var/run/docker.sock:ro
+#      depends_on:
+#        - mailu-front
+#        - mailu-imap
+#        - mailu-smtp
+#        - mailu-antispam
+#        - mailu-antivirus
+#        - mailu-webdav
+#        - mailu-admin
+#        - mailu-webmail
+#        - mailu-fetchmail
+#      command: ["sh", "-c", "echo ${MAILU_INIT_ADMIN_USERNAME}@${MAILU_DOMAIN} ${MAILU_INIT_ADMIN_PASSWORD} ;python manage.py advertise ; python manage.py db upgrade ; python manage.py admin ${MAILU_INIT_ADMIN_USERNAME} ${MAILU_DOMAIN} ${MAILU_INIT_ADMIN_PASSWORD} || true;sed -i -- \"s/= Off/= On/g\" /webmail/_data_/_default_/configs/config.ini || true;if grep -Fq \"registration_link_url\" /webmail/_data_/_default_/configs/config.ini;then echo Already set!;else echo \"\" >> /webmail/_data_/_default_/configs/config.ini; echo \"[login]\" >> /webmail/_data_/_default_/configs/config.ini;echo \"registration_link_url = '${MAILU_WEBSITE}${MAILU_WEB_ADMIN}/ui/user/signup'\" >> /webmail/_data_/_default_/configs/config.ini;fi"]
+#      networks:
+#        - backend
+#    mailu-front:
+#      image: mailu/nginx:${MAILU_VERSION}
+#      environment:
+#        - ADMIN=${MAILU_ADMIN}
+#        - WEB_ADMIN=${MAILU_WEB_ADMIN}
+#        - WEB_WEBMAIL=${MAILU_WEB_WEBMAIL}
+#        - WEBDAV=${MAILU_WEBDAV}
+#        - HOSTNAMES=${MAILU_HOSTNAMES}
+#        - TLS_FLAVOR=${MAILU_TLS_FLAVOR}
+#        - MESSAGE_SIZE_LIMIT=${MAILU_MESSAGE_SIZE_LIMIT}
+#      ports:
+#        - "${MAILU_HTTP_PORT}:80"
+#        - "${MAILU_HTTPS_PORT}:443"
+#        - "110:110"
+#        - "143:143"
+#        - "993:993"
+#        - "995:995"
+#        - "25:25"
+#        - "465:465"
+#        - "587:587"
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/certs:/certs"
+#      networks:
+#        backend:
+#          aliases:
+#            - front
+#    mailu-imap:
+#      image: mailu/dovecot:${MAILU_VERSION}
+#      environment:
+#        - DOMAIN=${MAILU_DOMAIN}
+#        - HOSTNAMES=${MAILU_HOSTNAMES}
+#        - POSTMASTER=${MAILU_POSTMASTER}
+#        - WEBMAIL=${MAILU_WEBMAIL}
+#        - RECIPIENT_DELIMITER=${MAILU_RECIPIENT_DELIMITER}
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/data:/data"
+#        - "${DATA_PATH_HOST}/mailu/mail:/mail"
+#        - "${DATA_PATH_HOST}/mailu/overrides:/overrides"
+#      depends_on:
+#        - mailu-front
+#      networks:
+#        backend:
+#          aliases:
+#            - imap
+#    mailu-smtp:
+#      image: mailu/postfix:${MAILU_VERSION}
+#      environment:
+#        - DOMAIN=${MAILU_DOMAIN}
+#        - HOSTNAMES=${MAILU_HOSTNAMES}
+#        - RELAYHOST=${MAILU_RELAYHOST}
+#        - RELAYNETS=${MAILU_RELAYNETS}
+#        - RECIPIENT_DELIMITER=${MAILU_RECIPIENT_DELIMITER}
+#        - MESSAGE_SIZE_LIMIT=${MAILU_MESSAGE_SIZE_LIMIT}
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/data:/data"
+#        - "${DATA_PATH_HOST}/mailu/overrides:/overrides"
+#      depends_on:
+#        - mailu-front
+#      networks:
+#        backend:
+#          aliases:
+#            - smtp
+#    mailu-antispam:
+#      image: mailu/rspamd:${MAILU_VERSION}
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/filter:/var/lib/rspamd"
+#        - "${DATA_PATH_HOST}/mailu/dkim:/dkim"
+#        - "${DATA_PATH_HOST}/mailu/overrides/rspamd:/etc/rspamd/override.d"
+#      depends_on:
+#        - mailu-front
+#      networks:
+#        backend:
+#          aliases:
+#            - antispam
+#    mailu-antivirus:
+#      image: mailu/clamav:${MAILU_VERSION}
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/filter:/data"
+#      networks:
+#        backend:
+#          aliases:
+#            - antivirus
+#    mailu-webdav:
+#      image: mailu/${MAILU_WEBDAV}:${MAILU_VERSION}
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/dav:/data"
+#      networks:
+#        backend:
+#          aliases:
+#            - webdav
+#    mailu-admin:
+#      image: mailu/admin:${MAILU_VERSION}
+#      environment:
+#        - DOMAIN=${MAILU_DOMAIN}
+#        - HOSTNAMES=${MAILU_HOSTNAMES}
+#        - POSTMASTER=${MAILU_POSTMASTER}
+#        - SECRET_KEY=${MAILU_SECRET_KEY}
+#        - AUTH_RATELIMIT=${MAILU_AUTH_RATELIMIT}
+#        - TLS_FLAVOR=${MAILU_TLS_FLAVOR}
+#        - DISABLE_STATISTICS=${MAILU_DISABLE_STATISTICS}
+#        - DMARC_RUA=${MAILU_DMARC_RUA}
+#        - DMARC_RUF=${MAILU_DMARC_RUF}
+#        - WELCOME=${MAILU_WELCOME}
+#        - WELCOME_SUBJECT=${MAILU_WELCOME_SUBJECT}
+#        - WELCOME_BODY=${MAILU_WELCOME_BODY}
+#        - WEB_ADMIN=${MAILU_WEB_ADMIN}
+#        - WEB_WEBMAIL=${MAILU_WEB_WEBMAIL}
+#        - WEBSITE=${MAILU_WEBSITE}
+#        - WEBMAIL=${MAILU_WEBMAIL}
+#        - SITENAME=${MAILU_SITENAME}
+#        - PASSWORD_SCHEME=${MAILU_PASSWORD_SCHEME}
+#        - RECAPTCHA_PUBLIC_KEY=${MAILU_RECAPTCHA_PUBLIC_KEY}
+#        - RECAPTCHA_PRIVATE_KEY=${MAILU_RECAPTCHA_PRIVATE_KEY}
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/data:/data"
+#        - "${DATA_PATH_HOST}/mailu/dkim:/dkim"
+#        - /var/run/docker.sock:/var/run/docker.sock:ro
+#      depends_on:
+#        - redis
+#      networks:
+#        backend:
+#          aliases:
+#            - admin
+#    mailu-webmail:
+#      image: "mailu/${MAILU_WEBMAIL}:${MAILU_VERSION}"
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/webmail:/data"
+#      networks:
+#        backend:
+#          aliases:
+#            - webmail
+#    mailu-fetchmail:
+#      image: mailu/fetchmail:${MAILU_VERSION}
+#      environment:
+#        - FETCHMAIL_DELAY=${MAILU_FETCHMAIL_DELAY}
+#      volumes:
+#        - "${DATA_PATH_HOST}/mailu/data:/data"
+#      networks:
+#        backend:
+#          aliases:
+#            - fetchmail
+#
+#### TRAEFIK #########################################
+#    traefik:
+#      build:
+#        context: ./traefik
+#      volumes:
+#        - /var/run/docker.sock:/var/run/docker.sock
+#        - ./traefik/data:/data
+#      command:
+#        - "--api"
+#        - "--providers.docker.exposedbydefault=false"
+#        - "--accesslog.filepath=/data/access.log"
+#        # entrypoints
+#        - "--entrypoints.http.address=:${TRAEFIK_HOST_HTTP_PORT}"
+#        - "--entrypoints.http.http.redirections.entrypoint.to=https"
+#        - "--entrypoints.https.address=:${TRAEFIK_HOST_HTTPS_PORT}"
+#        - "--entrypoints.traefik.address=:${TRAEFIK_DASHBOARD_PORT}"
+#        # certificatesresolvers
+#        - "--certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL}"
+#        - "--certificatesresolvers.letsencrypt.acme.storage=/data/acme.json"
+#        - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=http"
+#      ports:
+#        - "${TRAEFIK_HOST_HTTP_PORT}:${TRAEFIK_HOST_HTTP_PORT}"
+#        - "${TRAEFIK_HOST_HTTPS_PORT}:${TRAEFIK_HOST_HTTPS_PORT}"
+#        - "${TRAEFIK_DASHBOARD_PORT}:${TRAEFIK_DASHBOARD_PORT}"
+#      networks:
+#        - frontend
+#        - backend
+#      labels:
+#        - "traefik.enable=true"
+#        - "traefik.http.routers.traefik.rule=Host(`${ACME_DOMAIN}`)"
+#        - "traefik.http.routers.traefik.entrypoints=traefik"
+#        - "traefik.http.routers.traefik.service=api@internal"
+#        - "traefik.http.routers.traefik.middlewares=access-auth"
+#        - "traefik.http.routers.traefik.tls.certresolver=letsencrypt"
+#        - "traefik.http.middlewares.access-auth.basicauth.realm=Login Required"
+#        - "traefik.http.middlewares.access-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}"
+#
+#### MOSQUITTO Broker #########################################
+#    mosquitto:
+#      build:
+#        context: ./mosquitto
+#      volumes:
+#        - ${DATA_PATH_HOST}/mosquitto/data:/mosquitto/data
+#      ports:
 #        - "${MOSQUITTO_PORT}:9001"
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 #
 #### COUCHDB ###################################################
 #    couchdb:
@@ -2025,7 +1991,7 @@ services:
 #      ports:
 #        - "${COUCHDB_PORT}:5984"
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #### Manticore Search ###########################################
 #    manticore:
@@ -2040,7 +2006,7 @@ services:
 #        - "${MANTICORE_SPHINXQL_PORT}:9306"
 #        - "${MANTICORE_HTTP_PORT}:9308"
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #### SONARQUBE ################################################
 #    sonarqube:
@@ -2062,8 +2028,8 @@ services:
 #        - sonar.jdbc.password=${SONARQUBE_POSTGRES_PASSWORD}
 #        - sonar.jdbc.url=jdbc:postgresql://${SONARQUBE_POSTGRES_HOST}:5432/${SONARQUBE_POSTGRES_DB}
 #      networks:
-#        - spiritias-backend
-#        - spiritias-frontend
+#        - backend
+#        - frontend
 #
 #### CONFLUENCE ################################################
 #    confluence:
@@ -2073,8 +2039,8 @@ services:
 #      ports:
 #        - "${CONFLUENCE_HOST_HTTP_PORT}:8090"
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 #      depends_on:
 #        - postgres
 #      volumes:
@@ -2086,7 +2052,7 @@ services:
 #      ports:
 #        - ${SWAGGER_EDITOR_PORT}:8080
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #### SWAGGER UI ################################################
 #    swagger-ui:
@@ -2096,7 +2062,7 @@ services:
 #      ports:
 #        - ${SWAGGER_UI_PORT}:8080
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #### tomcat ####################################################
 #    tomcat:
@@ -2105,8 +2071,8 @@ services:
 #      ports:
 #        - "${TOMCAT_HOST_HTTP_PORT}:8080"
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 #      volumes:
 #        - ${DATA_PATH_HOST}/tomcat/webapps:/usr/local/tomcat/webapps
 #        - ${DATA_PATH_HOST}/tomcat/logs:/usr/local/tomcat/logs
@@ -2123,8 +2089,8 @@ services:
 #      environment:
 #        - CHOKIDAR_USEPOLLING=true
 #      networks:
-#          - spiritias-frontend
-#          - spiritias-backend
+#          - frontend
+#          - backend
 #      volumes:
 #        - ./react:/usr/src/app/react
 #        - /usr/src/app/react/node_modules
@@ -2144,7 +2110,7 @@ services:
 #        - ${DATA_PATH_HOST}/kafka:/kafka
 #        - /var/run/docker.sock:/var/run/docker.sock
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #### kafka-manager ###########################################
 #    kafka-manager:
@@ -2154,7 +2120,7 @@ services:
 #      environment:
 #        ZK_HOSTS: zookeeper:2181
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #
 #### tarantool ###########################################
@@ -2166,13 +2132,13 @@ services:
 #      ports:
 #        - ${TARANTOOL_PORT}:3301
 #      networks:
-#        - spiritias-backend
+#        - backend
 #    tarantool-admin:
 #      build: ./tarantool-admin
 #      ports:
 #        - ${TARANTOOL_ADMIN_PORT}:80
 #      networks:
-#        - spiritias-backend
+#        - backend
 #
 #  ### onedev ####################################################
 #    onedev:
@@ -2184,6 +2150,6 @@ services:
 #        - ${DATA_PATH_HOST}/onedev:/opt/onedev
 #        - /var/run/docker.sock:/var/run/docker.sock
 #      networks:
-#        - spiritias-frontend
-#        - spiritias-backend
+#        - frontend
+#        - backend
 #      restart: always
