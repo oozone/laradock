@@ -8,6 +8,10 @@ networks:
 volumes:
   mysql:
     driver: ${VOLUMES_DRIVER}
+  bloomapidb:
+    driver: ${VOLUMES_DRIVER}
+  olddb:
+    driver: ${VOLUMES_DRIVER}
 #  percona:
 #    driver: ${VOLUMES_DRIVER}
 #  mssql:
@@ -574,6 +578,50 @@ services:
       networks:
         - spiritias-backend
 
+    bloomapi:
+      image: mysql:8.0
+      restart: always
+      environment:
+        - MYSQL_DATABASE=${MYSQL_BLOOMAPI_DATABASE}
+        # So you don't have to use root, but you can if you like
+        - MYSQL_USER=${MYSQL_BLOOMAPI_USER}
+        # You can use whatever password you like
+        - MYSQL_PASSWORD=${MYSQL_BLOOMAPI_PASSWORD}
+        # Password for root access
+        - MYSQL_ROOT_PASSWORD=${MYSQL_BLOOMAPI_ROOT_PASSWORD}
+      ports:
+        # <Port exposed> : < MySQL Port running inside container>
+        - "${MYSQL_BLOOMAPI_PORT}:3306"
+      expose:
+        # Opens port 3306 on the container
+        - '3306'
+        # Where our data will be persisted
+      volumes:
+        - bloomapidb:/var/lib/mysql
+      networks:
+        - spiritias-backend
+
+    olddb:
+      image: mysql:8.0
+      restart: always
+      environment:
+        MYSQL_DATABASE: ${MYSQL_OLD_DATABASE}
+        # So you don't have to use root, but you can if you like
+        MYSQL_USER: ${MYSQL_OLD_USER}
+        # You can use whatever password you like
+        MYSQL_PASSWORD: ${MYSQL_OLD_PASSWORD}
+        # Password for root access
+        MYSQL_ROOT_PASSWORD: ${MYSQL_OLD_ROOT_PASSWORD}
+      ports:
+        # <Port exposed> : < MySQL Port running inside container>
+        - "${MYSQL_OLD_PORT}:3306"
+      expose:
+        # Opens port 3306 on the container
+        - '3306'
+        # Where our data will be persisted
+      volumes:
+        - olddb:/var/lib/mysql
+
 #    mysql:
 #      image: 'mysql/mysql-server:8.0'
 #      ports:
@@ -787,7 +835,7 @@ services:
       build: ./redis
       volumes:
         - ${DATA_PATH_HOST}/redis:/data
-      command: --requirepass ${REDIS_PASSWORD}
+      #command: --requirepass ${REDIS_PASSWORD}
       ports:
         - "${REDIS_PORT}:6379"
       networks:
