@@ -29,7 +29,14 @@ docker-compose.custom.yml
 /nginx/certs/*.crt
 /nginx/certs/*.key
 /nginx/certs/*.csr
+/nginx/certs/*.pem
+
+/nginx/certs**/*.crt
+/nginx/certs/**/*.key
+/nginx/certs/**/*.csr
+/nginx/certs/**/*.pem
 
 /nginx/ssl/**/*.crt
 /nginx/ssl/**/*.key
 /nginx/ssl/**/*.csr
+/nginx/ssl/**/*.pem
