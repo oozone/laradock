@@ -1,4 +1,4 @@
-FROM quay.io/soketi/soketi:latest
+FROM quay.io/soketi/soketi:latest-16-alpine
 
 LABEL maintainer="WuweiMing <wwm041544363@gmail.com>"
 
